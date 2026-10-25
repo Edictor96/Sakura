@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { useCommunityPosts } from "@/lib/data/community/communityStore";
 import type { CommunityData } from "@/lib/data/community/communityData";
 import { KEYS, useLocalSet } from "@/lib/store";
+import { recordClientActivity } from "@/lib/activityClient";
 
 export default function CreatePost({ data, initialGroup }: { data: CommunityData; initialGroup?: string }) {
   const router = useRouter();
@@ -30,6 +31,7 @@ export default function CreatePost({ data, initialGroup }: { data: CommunityData
     event.preventDefault();
     if (!canSubmit) return;
     const postId = `local-post-${Date.now()}`;
+    void fetch("/api/posts", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ roomSlug: groupSlug, body: body.trim(), isSpoiler: spoiler }) });
     addPost({
       id: postId,
       groupSlug,

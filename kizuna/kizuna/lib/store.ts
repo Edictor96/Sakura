@@ -2,56 +2,62 @@
 
 import { useCallback, useEffect, useState } from "react";
 
-// Prototype "account": joined rooms, RSVPs and saved titles live in this browser.
-// Replace with Supabase Auth + tables (memberships, rsvps) when sign-in lands.
-
 export const KEYS = {
   rooms: "kizuna.rooms",
   events: "kizuna.events",
   saved: "kizuna.saved",
 } as const;
 
-const SYNC = "kizuna-store";
+const SET_NAMES = {
+  [KEYS.rooms]: "rooms",
+  [KEYS.events]: "events",
+  [KEYS.saved]: "saved",
+} as const;
 
-function read(key: string): string[] {
-  try {
-    const raw = localStorage.getItem(key);
-    const parsed = raw ? JSON.parse(raw) : [];
-    return Array.isArray(parsed) ? parsed.filter((x) => typeof x === "string") : [];
-  } catch {
-    return [];
-  }
-}
+type SetName = (typeof SET_NAMES)[keyof typeof SET_NAMES];
 
 export function useLocalSet(key: string) {
   const [items, setItems] = useState<string[]>([]);
   const [ready, setReady] = useState(false);
 
   useEffect(() => {
-    setItems(read(key));
-    setReady(true);
-    const refresh = () => setItems(read(key));
-    window.addEventListener("storage", refresh);
-    window.addEventListener(SYNC, refresh);
-    return () => {
-      window.removeEventListener("storage", refresh);
-      window.removeEventListener(SYNC, refresh);
-    };
+    let active = true;
+    const setName = SET_NAMES[key as keyof typeof SET_NAMES] as SetName | undefined;
+    if (!setName) {
+      setReady(true);
+      return () => { active = false; };
+    }
+    void fetch("/api/me")
+      .then(async (response) => {
+        if (!response.ok) return;
+        const payload = await response.json() as { sets?: Partial<Record<SetName, string[]>> };
+        if (active) setItems(payload.sets?.[setName] ?? []);
+      })
+      .catch((error) => console.error("relationship state could not be loaded", error))
+      .finally(() => { if (active) setReady(true); });
+    return () => { active = false; };
   }, [key]);
 
   const toggle = useCallback(
     (id: string) => {
-      const current = read(key);
-      const next = current.includes(id) ? current.filter((x) => x !== id) : [...current, id];
-      try {
-        localStorage.setItem(key, JSON.stringify(next));
-      } catch {
-        /* storage blocked: state still updates for this visit */
-      }
+      const next = items.includes(id) ? items.filter((x) => x !== id) : [...items, id];
       setItems(next);
-      window.dispatchEvent(new Event(SYNC));
+      const entityType = key === KEYS.rooms ? "GROUP" : key === KEYS.events ? "EVENT" : "MEDIA";
+      void fetch("/api/relationships", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ entityType, entityId: id }),
+      }).then(async (response) => {
+        if (!response.ok) {
+          console.error("relationship update failed", await response.text());
+          setItems(items);
+        }
+      }).catch((error) => {
+        console.error("relationship update failed", error);
+        setItems(items);
+      });
     },
-    [key],
+    [items, key],
   );
 
   return { items, ready, toggle, has: (id: string) => items.includes(id) };

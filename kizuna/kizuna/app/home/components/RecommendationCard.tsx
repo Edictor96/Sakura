@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useLocalSet } from "@/lib/store";
 import { KEYS } from "@/lib/store";
 import { CatalogueItem } from "@/lib/types";
+import { mediaImage } from "@/lib/format";
 
 interface RecommendationCardProps {
   media: CatalogueItem | undefined;
@@ -20,10 +21,7 @@ export function RecommendationCard({ media, reason }: RecommendationCardProps) {
   return (
     <div className="card rec-card wob2 c-lav">
       <Link href={`/discover/${mediaId}`} className="rec-link">
-        <div 
-          className="rec-img" 
-          style={{ backgroundImage: `url(/api/placeholder/150/200)` }} 
-        />
+        {mediaImage(media) ? <img className="rec-img" src={mediaImage(media)} alt="" loading="lazy" /> : <div className="rec-img rec-img-fallback" aria-hidden="true">{media.kind.slice(0, 1).toUpperCase()}</div>}
         <div className="rec-info">
           <span className="rec-type">{media.kind}</span>
           <h3 className="h-card">{media.title}</h3>

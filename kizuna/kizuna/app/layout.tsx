@@ -38,6 +38,7 @@ export default function RootLayout({ children }: { children: ReactNode }) {
               <span className="brand-decoration" aria-hidden="true">🌸</span>
             </Link>
             <div className="topbar-right">
+              <NavLinks variant="top" />
               <Link href="/passport" className="profile-btn" aria-label="My Passport">
                 <div className="profile-avatar">
                   <span aria-hidden="true">👤</span>

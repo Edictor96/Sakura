@@ -30,7 +30,7 @@ export interface ExploreData {
 const categoryItems = (items: CatalogueItem[], kind: CatalogueItem["kind"]) =>
   items.filter((item) => item.kind === kind).map((item) => item.id);
 
-export function getExploreData(items: CatalogueItem[]): ExploreData {
+export function getExploreData(items: CatalogueItem[], personalizedIds: string[] = []): ExploreData {
   const anime = categoryItems(items, "anime");
   const music = categoryItems(items, "music");
   const films = categoryItems(items, "film");
@@ -53,9 +53,9 @@ export function getExploreData(items: CatalogueItem[]): ExploreData {
       { id: "relaxing", label: "Relaxing" },
       { id: "romantic", label: "Romantic" },
     ],
-    trendingAnime: anime,
-    music,
-    films,
+    trendingAnime: [...personalizedIds, ...anime.filter((id) => !personalizedIds.includes(id))],
+    music: [...personalizedIds.filter((id) => music.includes(id)), ...music.filter((id) => !personalizedIds.includes(id))],
+    films: [...personalizedIds.filter((id) => films.includes(id)), ...films.filter((id) => !personalizedIds.includes(id))],
     newAndUpcoming: recent,
     collections: [
       { id: "beginner-anime", title: "Anime for beginners", description: "A gentle first step into a bigger world.", itemIds: anime.slice(0, 3) },

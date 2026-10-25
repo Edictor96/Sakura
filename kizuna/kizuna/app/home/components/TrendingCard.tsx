@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { CatalogueItem } from "@/lib/types";
+import { mediaImage } from "@/lib/format";
 
 interface TrendingCardProps {
   media: CatalogueItem | undefined;
@@ -14,7 +15,7 @@ export function TrendingCard({ media, metric, indicator }: TrendingCardProps) {
 
   return (
     <div className="card trend-card wob3 c-blue">
-      <div className="trend-img" style={{ backgroundImage: `url(/api/placeholder/100/100)` }} />
+      {mediaImage(media) ? <img className="trend-img" src={mediaImage(media)} alt="" loading="lazy" /> : <div className="trend-img trend-img-fallback" aria-hidden="true">{media.kind.slice(0, 1).toUpperCase()}</div>}
       <div className="trend-info">
         <div className="trend-metric-box">
           <span className="trend-metric">{metric}</span>

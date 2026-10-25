@@ -12,17 +12,6 @@ interface Props {
   initial: Post[];
 }
 
-const storageKey = (slug: string) => `kizuna.posts.${slug}`;
-
-function readLocal(slug: string): Post[] {
-  try {
-    const raw = localStorage.getItem(storageKey(slug));
-    return raw ? (JSON.parse(raw) as Post[]) : [];
-  } catch {
-    return [];
-  }
-}
-
 const getTilt = (id: string) => {
   const hash = id.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
   return (hash % 5) - 2; // -2 to 2 degrees
@@ -37,7 +26,6 @@ export default function RoomFeed({ roomSlug, roomName, initial }: Props) {
   const joined = rooms.ready && rooms.has(roomSlug);
 
   useEffect(() => {
-    setMine(readLocal(roomSlug));
     setNow(Date.now());
   }, [roomSlug]);
 
@@ -50,7 +38,7 @@ export default function RoomFeed({ roomSlug, roomName, initial }: Props) {
     }
     setError("");
     const post: Post = {
-      id: `local-${Date.now()}`,
+      id: `pending-${Date.now()}`,
       roomSlug,
       author: "You",
       body: text.trim(),
@@ -61,16 +49,20 @@ export default function RoomFeed({ roomSlug, roomName, initial }: Props) {
     setMine(next);
     setText("");
     setNow(Date.now());
-    try {
-      localStorage.setItem(storageKey(roomSlug), JSON.stringify(next));
-    } catch {
-      /* ignore */
-    }
     fetch("/api/posts", {
       method: "POST",
       headers: { "content-type": "application/json" },
-      body: JSON.stringify({ roomSlug, author: "Guest", body: post.body }),
-    }).catch(() => undefined);
+      body: JSON.stringify({ roomSlug, body: post.body }),
+    }).then(async (response) => {
+      if (!response.ok) {
+        setMine((current) => current.filter((item) => item.id !== post.id));
+        setError(await response.text());
+      }
+    }).catch((error) => {
+      console.error("room post could not be persisted", error);
+      setMine((current) => current.filter((item) => item.id !== post.id));
+      setError("Post could not be saved. Try again.");
+    });
   }
 
   const all = [...mine, ...initial];

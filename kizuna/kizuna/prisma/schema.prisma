@@ -1,0 +1,430 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+model User {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  username  String   @unique
+  name      String?
+  avatarUrl String?
+  bio       String?
+  city      String?
+  interests String[] @default([])
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+
+  posts                 Post[]
+  comments              Comment[]
+  reactions             Reaction[]
+  reports               Report[]                @relation("ReportReporter")
+  resolvedReports       Report[]                @relation("ReportResolver")
+  blocksFrom            Block[]                 @relation("Blocker")
+  blocksTo              Block[]                 @relation("Blocked")
+  activities            Activity[]
+  memberships           GroupMembership[]
+  savedMedia            SavedMedia[]
+  eventRsvps            EventRsvp[]
+  checkIns              EventCheckIn[]
+  wishlist              WishlistItem[]
+  hostedEvents          Event[]                 @relation("EventHost")
+  hostedWatchParties    WatchParty[]            @relation("WatchPartyHost")
+  watchPartyMemberships WatchPartyParticipant[]
+  notifications         Notification[]
+  cartItems             CartItem[]
+}
+
+model Media {
+  id               String       @id @default(cuid())
+  title            String
+  type             String
+  world            String       @default("watch")
+  description      String?
+  blurb            String?
+  imageUrl         String?
+  originalTitle    String?
+  alternateTitles  String[]     @default([])
+  externalId       String?
+  source           String?
+  sourceUrl        String?
+  externalMetadata Json?
+  lastSyncedAt     DateTime?
+  year             Int?
+  releaseDate      DateTime?
+  status           String?
+  runtimeMinutes   Int?
+  episodeCount     Int?
+  season           String?
+  language         String?
+  country          String?
+  score            Float?
+  popularity       Int?
+  ageRating        String?
+  maker            String?
+  genres           String[]     @default([])
+  themes           String[]     @default([])
+  creators         Json?
+  cast             Json?
+  relatedMedia     Json?
+  externalLinks    Json?
+  tags             String[]     @default([])
+  createdAt        DateTime     @default(now())
+  updatedAt        DateTime     @default(now()) @updatedAt
+  savedBy          SavedMedia[]
+  images           MediaImage[]
+
+  @@unique([source, externalId])
+  @@index([world])
+  @@index([type])
+}
+
+model MediaImage {
+  id         String   @id @default(cuid())
+  mediaId   String
+  type       String
+  url        String
+  provider   String
+  sourceUrl  String?
+  width      Int?
+  height     Int?
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @default(now()) @updatedAt
+
+  media Media @relation(fields: [mediaId], references: [id], onDelete: Cascade)
+
+  @@unique([mediaId, type, provider])
+  @@index([mediaId, type])
+}
+
+model Group {
+  id          String   @id @default(cuid())
+  slug        String   @unique
+  name        String
+  description String?
+  imageUrl    String?
+  kind        String   @default("interest")
+  glyph       String   @default("*")
+  tags        String[] @default([])
+  dimension   String?
+  city        String?
+  memberCount Int      @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @default(now()) @updatedAt
+
+  posts        Post[]
+  memberships  GroupMembership[]
+  events       Event[]
+  watchParties WatchParty[]
+
+  @@index([city])
+  @@index([kind])
+}
+
+model Post {
+  id        String   @id @default(cuid())
+  content   String
+  imageUrl  String?
+  isSpoiler Boolean  @default(false)
+  isPinned  Boolean  @default(false)
+  authorId  String
+  groupId   String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+
+  author   User      @relation(fields: [authorId], references: [id])
+  group    Group     @relation(fields: [groupId], references: [id])
+  comments Comment[]
+
+  @@index([groupId, createdAt])
+}
+
+model Event {
+  id          String    @id @default(cuid())
+  title       String
+  description String?
+  type        String
+  city        String?
+  venue       String?
+  startTime   DateTime
+  endTime     DateTime?
+  capacity    Int?
+  imageUrl    String?
+  citySlug    String?
+  venueLabel  String?
+  blurb       String?
+  tags        String[]  @default([])
+  roomSlug    String?
+  mode        String    @default("offline")
+  source      String?
+  sourceId    String?
+  sourceUrl   String?
+  hostUserId  String?
+  groupId     String?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @default(now()) @updatedAt
+
+  group        Group?         @relation(fields: [groupId], references: [id])
+  host         User?          @relation("EventHost", fields: [hostUserId], references: [id], onDelete: SetNull)
+  eventRsvps   EventRsvp[]
+  checkIns     EventCheckIn[]
+  watchParties WatchParty[]
+
+  @@unique([source, sourceId])
+  @@index([citySlug, startTime])
+  @@index([roomSlug])
+  @@index([hostUserId])
+}
+
+model Product {
+  id          String   @id @default(cuid())
+  name        String
+  description String?
+  price       Float
+  imageUrl    String?
+  category    String
+  brand       String?
+  partner     String?
+  partnerUrl  String?
+  verified    Boolean  @default(false)
+  tags        String[] @default([])
+  stock       Int      @default(0)
+  isFusion    Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @default(now()) @updatedAt
+
+  wishlist WishlistItem[]
+  cartItems CartItem[]
+}
+
+model Activity {
+  id              String   @id @default(cuid())
+  userId          String
+  interactionType String
+  entityType      String
+  entityId        String
+  metadata        Json?
+  createdAt       DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id])
+
+  @@index([userId])
+  @@index([entityType, entityId])
+  @@index([createdAt])
+}
+
+model GroupMembership {
+  id        String   @id @default(cuid())
+  userId    String
+  groupId   String
+  createdAt DateTime @default(now())
+
+  user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  group Group @relation(fields: [groupId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, groupId])
+  @@index([groupId])
+}
+
+model SavedMedia {
+  id        String   @id @default(cuid())
+  userId    String
+  mediaId   String
+  createdAt DateTime @default(now())
+
+  user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  media Media @relation(fields: [mediaId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, mediaId])
+  @@index([mediaId])
+}
+
+model EventRsvp {
+  id        String   @id @default(cuid())
+  userId    String
+  eventId   String
+  status    String   @default("going")
+  createdAt DateTime @default(now())
+
+  user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  event Event @relation(fields: [eventId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, eventId])
+  @@index([eventId])
+}
+
+model EventCheckIn {
+  id          String   @id @default(cuid())
+  userId      String
+  eventId     String
+  reference   String?
+  checkedInAt DateTime @default(now())
+
+  user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  event Event @relation(fields: [eventId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, eventId])
+  @@index([eventId, checkedInAt])
+}
+
+model Comment {
+  id        String   @id @default(cuid())
+  postId    String
+  authorId  String
+  parentId  String?
+  content   String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  post    Post      @relation(fields: [postId], references: [id], onDelete: Cascade)
+  author  User      @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  parent  Comment?  @relation("CommentThread", fields: [parentId], references: [id], onDelete: Cascade)
+  replies Comment[] @relation("CommentThread")
+
+  @@index([postId, createdAt])
+  @@index([parentId])
+}
+
+model Reaction {
+  id           String   @id @default(cuid())
+  userId       String
+  entityType   String
+  entityId     String
+  reactionType String   @default("LIKE")
+  createdAt    DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, entityType, entityId, reactionType])
+  @@index([entityType, entityId])
+}
+
+model Report {
+  id         String    @id @default(cuid())
+  reporterId String
+  entityType String
+  entityId   String
+  reason     String
+  status     String    @default("open")
+  resolvedAt DateTime?
+  resolvedBy String?
+  createdAt  DateTime  @default(now())
+
+  reporter User  @relation("ReportReporter", fields: [reporterId], references: [id], onDelete: Cascade)
+  resolver User? @relation("ReportResolver", fields: [resolvedBy], references: [id], onDelete: SetNull)
+
+  @@index([status, createdAt])
+  @@index([entityType, entityId])
+}
+
+model Block {
+  id        String   @id @default(cuid())
+  blockerId String
+  blockedId String
+  createdAt DateTime @default(now())
+
+  blocker User @relation("Blocker", fields: [blockerId], references: [id], onDelete: Cascade)
+  blocked User @relation("Blocked", fields: [blockedId], references: [id], onDelete: Cascade)
+
+  @@unique([blockerId, blockedId])
+  @@index([blockedId])
+}
+
+model WatchParty {
+  id        String   @id @default(cuid())
+  title     String
+  eventId   String?
+  groupId   String?
+  hostId    String
+  startsAt  DateTime
+  status    String   @default("upcoming")
+  agenda    Json?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  event        Event?                  @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  group        Group?                  @relation(fields: [groupId], references: [id], onDelete: SetNull)
+  host         User                    @relation("WatchPartyHost", fields: [hostId], references: [id], onDelete: Cascade)
+  participants WatchPartyParticipant[]
+
+  @@index([eventId])
+  @@index([groupId, startsAt])
+}
+
+model WatchPartyParticipant {
+  id           String   @id @default(cuid())
+  watchPartyId String
+  userId       String
+  joinedAt     DateTime @default(now())
+  status       String   @default("joined")
+
+  watchParty WatchParty @relation(fields: [watchPartyId], references: [id], onDelete: Cascade)
+  user       User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([watchPartyId, userId])
+  @@index([userId])
+}
+
+model Notification {
+  id         String    @id @default(cuid())
+  userId     String
+  type       String
+  title      String
+  body       String
+  entityType String?
+  entityId   String?
+  readAt     DateTime?
+  createdAt  DateTime  @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, readAt, createdAt])
+}
+
+model IngestionRun {
+  id          String    @id @default(cuid())
+  provider    String
+  entityType  String
+  status      String
+  fetched     Int       @default(0)
+  upserted    Int       @default(0)
+  error       String?
+  startedAt   DateTime  @default(now())
+  completedAt DateTime?
+
+  @@index([provider, entityType, startedAt])
+}
+
+model WishlistItem {
+  id        String   @id @default(cuid())
+  userId    String
+  productId String
+  createdAt DateTime @default(now())
+
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, productId])
+  @@index([productId])
+}
+
+model CartItem {
+  id        String   @id @default(cuid())
+  userId    String
+  productId String
+  quantity  Int      @default(1)
+  variant   String   @default("Standard")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, productId])
+  @@index([productId])
+}

@@ -3,6 +3,7 @@ import { Sparkle, Squiggle } from "@/components/Doodles";
 import { SampleNote } from "@/components/Bits";
 import { getHomeData, getMediaById } from "@/lib/data/home/homeData";
 import { events, getCity } from "@/lib/data/events/eventsData";
+import { mediaImage } from "@/lib/format";
 
 export default async function Home() {
   const data = await getHomeData();
@@ -24,6 +25,46 @@ export default async function Home() {
         </div>
       </section>
 
+      <section className="world-gateway block" aria-labelledby="worlds-title">
+        <div className="explore-section-head">
+          <div>
+            <span className="stamp">Four ways in</span>
+            <h2 id="worlds-title" className="h-section">Explore SAKURA</h2>
+          </div>
+          <span className="small muted">Find your next circle</span>
+        </div>
+        <div className="world-gateway-grid">
+          <Link href="/explore" className="world-gateway-card world-explore">
+            <span className="world-gateway-mark" aria-hidden="true">見</span>
+            <span className="stamp">01 / Discover</span>
+            <h3 className="h-card">Explore</h3>
+            <p>Anime, music, films and the cultural threads between them.</p>
+            <span className="small">Browse the shelves →</span>
+          </Link>
+          <Link href="/community" className="world-gateway-card world-community">
+            <span className="world-gateway-mark" aria-hidden="true">輪</span>
+            <span className="stamp">02 / Belong</span>
+            <h3 className="h-card">Community</h3>
+            <p>Groups, conversations and a place for your particular niche.</p>
+            <span className="small">Meet your people →</span>
+          </Link>
+          <Link href="/events" className="world-gateway-card world-events">
+            <span className="world-gateway-mark" aria-hidden="true">生</span>
+            <span className="stamp">03 / Gather</span>
+            <h3 className="h-card">Events</h3>
+            <p>Watch parties, conventions and small plans worth showing up for.</p>
+            <span className="small">See what is happening →</span>
+          </Link>
+          <Link href="/merch" className="world-gateway-card world-merch">
+            <span className="world-gateway-mark" aria-hidden="true">集</span>
+            <span className="stamp">04 / Collect</span>
+            <h3 className="h-card">Merch</h3>
+            <p>Independent makers, thoughtful objects and stories to keep.</p>
+            <span className="small">Meet the makers →</span>
+          </Link>
+        </div>
+      </section>
+
       <section className="block" aria-labelledby="picked-title">
         <h2 id="picked-title" className="h-section">Picked for you</h2>
         <div className="horizontal-scroll">
@@ -31,7 +72,7 @@ export default async function Home() {
             const media = getMediaById(rec.mediaId);
             return (
               <Link key={rec.mediaId} href={`/discover/${rec.mediaId}`} className="card rec-card wob2 c-lav">
-                <div className="rec-img" style={{ backgroundImage: `url(/api/placeholder/150/200)` }} />
+                {media && mediaImage(media) ? <img className="rec-img" src={mediaImage(media)} alt="" loading="lazy" /> : <div className="rec-img rec-img-fallback" aria-hidden="true">{media?.kind.slice(0, 1).toUpperCase()}</div>}
                 <div className="rec-info">
                   <span className="rec-type">{media?.kind}</span>
                   <h3 className="h-card">{media?.title}</h3>
@@ -50,7 +91,7 @@ export default async function Home() {
             const media = getMediaById(trend.mediaId);
             return (
               <li key={trend.mediaId} className="card trend-card wob3 c-blue">
-                <div className="trend-img" style={{ backgroundImage: `url(/api/placeholder/100/100)` }} />
+                {media && mediaImage(media) ? <img className="trend-img" src={mediaImage(media)} alt="" loading="lazy" /> : <div className="trend-img trend-img-fallback" aria-hidden="true">{media?.kind.slice(0, 1).toUpperCase()}</div>}
                 <div className="trend-info">
                   <span className="trend-metric">{trend.metric}</span>
                   <h3 className="h-card">{media?.title}</h3>

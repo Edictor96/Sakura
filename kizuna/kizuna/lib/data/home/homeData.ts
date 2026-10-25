@@ -1,5 +1,7 @@
 import type { CatalogueItem } from "../../types";
 import { catalogue } from "../mock";
+import { getPersonalizedHome } from "@/lib/server/services/recommendationService";
+import { getCurrentUser } from "@/lib/server/auth";
 
 export interface HomeFeatured {
   id: string;
@@ -45,8 +47,11 @@ export interface HomeData {
   discoverCategories: DiscoverCategory[];
 }
 
-export async function getHomeData(): Promise<HomeData> {
-  // Temporary pseudo-data provider
+export async function getHomeData(userId?: string): Promise<HomeData> {
+  const user = userId ? { id: userId } : await getCurrentUser();
+  const personalized = process.env.DATABASE_URL && user ? await getPersonalizedHome(user.id) : undefined;
+  const mediaRecommendations = personalized?.pickedForYou.filter((item) => item.entityType === "MEDIA") ?? [];
+  const mediaTrending = personalized?.trending.filter((item) => item.entityType === "MEDIA") ?? [];
   return {
     featured: {
       id: "featured-1",
@@ -57,17 +62,21 @@ export async function getHomeData(): Promise<HomeData> {
       ctaText: "Find a Screening",
       ctaHref: "/events",
     },
-    recommendations: [
-      { mediaId: "your-name", reason: "Because you liked Your Name" },
-      { mediaId: "jujutsu-kaisen", reason: "Popular in your communities" },
-      { mediaId: "yoasobi", reason: "Because you're exploring J-Music" },
-      { mediaId: "persona-5-royal", reason: "Trending among Sakura users" },
-    ],
-    trends: [
-      { mediaId: "elden-ring", metric: "1.2k talking", indicator: "up" },
-      { mediaId: "vagabond", metric: "850 reading", indicator: "up" },
-      { mediaId: "ado", metric: "2k listening", indicator: "stable" },
-    ],
+    recommendations: mediaRecommendations.length
+      ? mediaRecommendations.map((item) => ({ mediaId: item.entityId, reason: item.reason }))
+      : [
+          { mediaId: "your-name", reason: "Because you liked Your Name" },
+          { mediaId: "jujutsu-kaisen", reason: "Popular in your communities" },
+          { mediaId: "yoasobi", reason: "Because you're exploring J-Music" },
+          { mediaId: "persona-5-royal", reason: "Trending among Sakura users" },
+        ],
+    trends: mediaTrending.length
+      ? mediaTrending.map((item) => ({ mediaId: item.entityId, metric: `${item.score} Sakura activity`, indicator: "up" as const }))
+      : [
+          { mediaId: "elden-ring", metric: "1.2k talking", indicator: "up" },
+          { mediaId: "vagabond", metric: "850 reading", indicator: "up" },
+          { mediaId: "ado", metric: "2k listening", indicator: "stable" },
+        ],
     userSummary: {
       communitiesJoined: 3,
       titlesSaved: 5,

@@ -35,3 +35,9 @@ export function officialSearchUrl(item: CatalogueItem): { label: string; url: st
   if (item.world === "play") return { label: "Find an official store page", url: `https://www.google.com/search?q=${q}+official+store` };
   return { label: "Find where to watch or read", url: `https://www.justwatch.com/in/search?q=${q}` };
 }
+
+export function mediaImage(item: CatalogueItem, preferred: string[] = ["poster", "cover", "thumbnail"]): string | undefined {
+  return preferred
+    .map((type) => item.images?.find((image) => image.type === type)?.url)
+    .find((url): url is string => Boolean(url)) ?? item.imageUrl;
+}

@@ -5,6 +5,7 @@ import { SaveButton } from "@/components/ToggleButtons";
 import { db } from "@/lib/data";
 import { officialSearchUrl } from "@/lib/format";
 import { roomsForItem, similarItems } from "@/lib/recommend";
+import { recordCurrentUserActivity } from "@/lib/server/services/activityService";
 
 type Params = { params: Promise<{ id: string }> };
 
@@ -18,6 +19,9 @@ export default async function ItemPage({ params }: Params) {
   const { id } = await params;
   const item = await db.getCatalogueItem(id);
   if (!item) notFound();
+  if (process.env.DATABASE_URL) {
+    await recordCurrentUserActivity({ interactionType: "VIEW", entityType: "MEDIA", entityId: item.id, metadata: { source: "discover" } });
+  }
 
   const [all, rooms] = await Promise.all([db.getCatalogue(), db.getRooms()]);
   const similar = similarItems(all, item);
@@ -28,6 +32,13 @@ export default async function ItemPage({ params }: Params) {
     <div className="detail" style={{ display: 'grid', gap: '32px' }}>
       <p><Link href="/discover">Back to Discover</Link></p>
 
+      {item.images?.find((image) => image.type === "backdrop" || image.type === "banner")?.url ?? item.imageUrl ? (
+        <img
+          src={item.images?.find((image) => image.type === "backdrop" || image.type === "banner")?.url ?? item.imageUrl}
+          alt=""
+          style={{ width: "100%", maxHeight: 360, objectFit: "cover", borderRadius: 16 }}
+        />
+      ) : null}
       <article className="card detail-card surface-note c-pink wob3" style={{ padding: '40px' }}>
         <h1 className="h-page">{item.title}</h1>
         <p className="muted">
@@ -35,8 +46,14 @@ export default async function ItemPage({ params }: Params) {
         </p>
         <p>{item.blurb}</p>
         <ul className="chips" aria-label="Tags">
-          {item.tags.map((t) => <li key={t} className="chip">{t}</li>)}
+          {[...(item.genres ?? []), ...(item.themes ?? []), ...item.tags].filter((tag, index, all) => all.indexOf(tag) === index).map((t) => <li key={t} className="chip">{t}</li>)}
         </ul>
+        {item.originalTitle && item.originalTitle !== item.title ? <p className="muted">Original title: {item.originalTitle}</p> : null}
+        {item.score || item.status || item.episodeCount || item.runtimeMinutes ? (
+          <p className="muted">
+            {[item.score ? `Score ${item.score}/10` : null, item.status, item.episodeCount ? `${item.episodeCount} episodes` : null, item.runtimeMinutes ? `${item.runtimeMinutes} min` : null].filter(Boolean).join(" · ")}
+          </p>
+        ) : null}
         <div className="item-actions" style={{ marginTop: 16 }}>
           <SaveButton id={item.id} />
           <a href={official.url} target="_blank" rel="noopener noreferrer" className="btn btn-small btn-mint">

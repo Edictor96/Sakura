@@ -2,90 +2,107 @@
 
 import { useCallback, useEffect, useState } from "react";
 
-const WISHLIST_KEY = "kizuna.merch.wishlist";
-const CART_KEY = "kizuna.merch.cart";
-const CART_ITEMS_KEY = "kizuna.merch.cart.items";
-
 export interface MerchCartItem {
   productId: string;
   quantity: number;
   variant: string;
 }
 
-function read(key: string): string[] {
-  try {
-    const value = JSON.parse(localStorage.getItem(key) ?? "[]");
-    return Array.isArray(value) ? value.filter((item): item is string => typeof item === "string") : [];
-  } catch {
-    return [];
-  }
-}
-
-function useLocalIds(key: string) {
-  const [ids, setIds] = useState<string[]>([]);
-  useEffect(() => setIds(read(key)), [key]);
-  const toggle = useCallback((id: string) => {
-    const next = read(key).includes(id) ? read(key).filter((item) => item !== id) : [...read(key), id];
-    try { localStorage.setItem(key, JSON.stringify(next)); } catch { /* local prototype state remains usable */ }
-    setIds(next);
-  }, [key]);
-  return { ids, toggle };
+interface MePayload {
+  sets?: { wishlist?: string[] };
 }
 
 export function useMerchWishlist() {
-  return useLocalIds(WISHLIST_KEY);
+  const [ids, setIds] = useState<string[]>([]);
+  useEffect(() => {
+    void fetch("/api/me")
+      .then(async (response) => {
+        if (!response.ok) return;
+        const payload = await response.json() as MePayload;
+        setIds(payload.sets?.wishlist ?? []);
+      })
+      .catch((error) => console.error("wishlist state could not be loaded", error));
+  }, []);
+  const toggle = useCallback((id: string) => {
+    const previous = ids;
+    setIds((current) => current.includes(id) ? current.filter((item) => item !== id) : [...current, id]);
+    void fetch("/api/relationships", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ entityType: "PRODUCT", entityId: id }),
+    }).then(async (response) => {
+      if (!response.ok) {
+        console.error("wishlist update failed", await response.text());
+        setIds(previous);
+      }
+    }).catch((error) => {
+      console.error("wishlist update failed", error);
+      setIds(previous);
+    });
+  }, [ids]);
+  return { ids, toggle };
 }
 
 export function useMerchCart() {
-  const base = useLocalIds(CART_KEY);
+  const [ids, setIds] = useState<string[]>([]);
+  useEffect(() => {
+    void fetch("/api/cart")
+      .then(async (response) => {
+        if (!response.ok) return;
+        const payload = await response.json() as { items?: MerchCartItem[] };
+        setIds((payload.items ?? []).map((item) => item.productId));
+      })
+      .catch((error) => console.error("cart state could not be loaded", error));
+  }, []);
   const toggle = useCallback((id: string) => {
-    const currentlyPresent = read(CART_KEY).includes(id);
-    const nextItems = currentlyPresent
-      ? readCartItems().filter((item) => item.productId !== id)
-      : [...readCartItems(), { productId: id, quantity: 1, variant: "Standard" }];
-    writeCartItems(nextItems);
-    base.toggle(id);
-  }, [base.toggle]);
-  return { ...base, toggle };
-}
-
-function readCartItems(): MerchCartItem[] {
-  try {
-    const value = JSON.parse(localStorage.getItem(CART_ITEMS_KEY) ?? "[]");
-    return Array.isArray(value) ? value.filter((item): item is MerchCartItem => item && typeof item.productId === "string" && typeof item.quantity === "number" && typeof item.variant === "string") : [];
-  } catch {
-    return [];
-  }
-}
-
-function writeCartItems(items: MerchCartItem[]) {
-  try { localStorage.setItem(CART_ITEMS_KEY, JSON.stringify(items)); } catch { /* local state remains usable */ }
+    const exists = ids.includes(id);
+    setIds((current) => exists ? current.filter((item) => item !== id) : [...current, id]);
+    void (exists
+      ? fetch(`/api/cart?productId=${encodeURIComponent(id)}`, { method: "DELETE" })
+      : fetch("/api/cart", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ productId: id }) }))
+      .then(async (response) => {
+        if (!response.ok) {
+          console.error("cart update failed", await response.text());
+          setIds((current) => exists ? [...current, id] : current.filter((item) => item !== id));
+        }
+      })
+      .catch((error) => {
+        console.error("cart update failed", error);
+        setIds((current) => exists ? [...current, id] : current.filter((item) => item !== id));
+      });
+  }, [ids]);
+  return { ids, toggle };
 }
 
 export function useMerchCartItems() {
   const [items, setItems] = useState<MerchCartItem[]>([]);
   useEffect(() => {
-    const ids = read(CART_KEY);
-    const stored = readCartItems();
-    const migrated = stored.length ? stored : ids.map((productId) => ({ productId, quantity: 1, variant: "Standard" }));
-    setItems(migrated);
-    if (!stored.length && migrated.length) writeCartItems(migrated);
+    void fetch("/api/cart")
+      .then(async (response) => {
+        if (!response.ok) return;
+        const payload = await response.json() as { items?: Array<{ productId: string; quantity: number; variant: string }> };
+        setItems(payload.items ?? []);
+      })
+      .catch((error) => console.error("cart items could not be loaded", error));
   }, []);
   const updateQuantity = useCallback((productId: string, quantity: number) => {
-    const next = readCartItems().map((item) => item.productId === productId ? { ...item, quantity: Math.max(1, quantity) } : item);
-    writeCartItems(next); setItems(next);
-  }, []);
-  const remove = useCallback((productId: string) => {
-    const next = readCartItems().filter((item) => item.productId !== productId);
-    writeCartItems(next);
-    try { localStorage.setItem(CART_KEY, JSON.stringify(next.map((item) => item.productId))); } catch { /* local state remains usable */ }
+    const next = items.map((item) => item.productId === productId ? { ...item, quantity: Math.max(1, quantity) } : item);
     setItems(next);
+    void fetch("/api/cart", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ productId, quantity: Math.max(1, quantity), variant: "Standard" }) })
+      .then(async (response) => { if (!response.ok) console.error("cart quantity update failed", await response.text()); })
+      .catch((error) => console.error("cart quantity update failed", error));
+  }, [items]);
+  const remove = useCallback((productId: string) => {
+    setItems((current) => current.filter((item) => item.productId !== productId));
+    void fetch(`/api/cart?productId=${encodeURIComponent(productId)}`, { method: "DELETE" })
+      .then(async (response) => { if (!response.ok) console.error("cart removal failed", await response.text()); })
+      .catch((error) => console.error("cart removal failed", error));
   }, []);
   const moveToWishlist = useCallback((productId: string) => {
-    const next = readCartItems().filter((item) => item.productId !== productId);
-    writeCartItems(next);
-    try { localStorage.setItem(CART_KEY, JSON.stringify(next.map((item) => item.productId))); } catch { /* local state remains usable */ }
-    setItems(next);
+    setItems((current) => current.filter((item) => item.productId !== productId));
+    void fetch(`/api/cart?productId=${encodeURIComponent(productId)}`, { method: "DELETE" })
+      .then(async (response) => { if (!response.ok) console.error("cart removal failed", await response.text()); })
+      .catch((error) => console.error("cart removal failed", error));
   }, []);
   return { items, updateQuantity, remove, moveToWishlist };
 }

@@ -1,11 +1,10 @@
 import type { DataApi } from "../types";
 import { api as mock } from "./mock";
+import { api as prisma } from "./prisma";
 import { api as supa } from "./supabase";
 
-// One switch for the whole app: sample data until both Supabase variables are set.
-const hasSupabase = Boolean(
-  process.env.NEXT_PUBLIC_SUPABASE_URL && process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
-);
+const hasDatabase = Boolean(process.env.DATABASE_URL);
+const hasSupabase = Boolean(process.env.NEXT_PUBLIC_SUPABASE_URL && process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY);
 
-export const db: DataApi = hasSupabase ? supa : mock;
-export const usingSampleData = !hasSupabase;
+export const db: DataApi = hasDatabase ? prisma : hasSupabase ? supa : mock;
+export const usingSampleData = !hasDatabase && !hasSupabase;

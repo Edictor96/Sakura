@@ -2,15 +2,36 @@
 
 ## Scope
 
-This document describes the production backend target for SAKURA. It is an architecture and
-migration baseline only. It does not add authentication, recommendations, external integrations,
-payments, or machine-learning behavior.
+This document describes the production backend target for SAKURA and the current prototype
+implementation. Prisma 6.19 and PostgreSQL/Supabase are the canonical persistence layer.
+Recommendations remain deterministic and provider ingestion is optional.
+
+### Rich media ingestion
+
+Media uses one provider-neutral record for anime, films, series, music, artists, and other
+catalogue entities. Type-specific values are stored in the shared metadata fields and JSON
+extension fields on `Media`; provider artwork is normalized into `MediaImage` rows with an
+artwork type (`poster`, `backdrop`, `banner`, `thumbnail`, `logo`, or `album`), provider, URL,
+dimensions, and source URL. Artwork remains provider-hosted rather than being copied into SAKURA
+storage.
+
+Provider adapters return `NormalizedMedia` records. The ingestion service upserts by
+`source + externalId`, refreshes that provider's image rows, and preserves the SAKURA media ID
+across resyncs. Consumers receive the normalized image collection and structured metadata, so
+the frontend does not need provider-specific API calls. Missing optional artwork is skipped; the
+existing primary URL remains available as a fallback.
 
 The existing UI remains the source of the current interaction contract. Backend work must replace
 data access behind that contract, not redesign the Home, Explore, Community, Events, Merch, or
 Profile/Passport surfaces.
 
 ## Current-state audit
+
+The implemented baseline now includes Prisma repositories/services, Supabase-to-Prisma user
+provisioning, persisted memberships/saves/RSVPs/wishlists/activities, community comments and
+replies, reactions, reports, blocks, event check-ins, watch-party persistence models, profile
+updates, database-backed search, and an admin-token-protected AniList ingestion route. The mock
+adapter remains available when content tables are unavailable during local/demo builds.
 
 ### Runtime shape
 
@@ -176,4 +197,3 @@ authorization.
 - External APIs, payments, seller integrations, ticketing, or email.
 - Python/FastAPI implementation.
 - UI redesign or behavior changes.
-

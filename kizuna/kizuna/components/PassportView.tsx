@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useEffect, useState } from "react";
 import { formatDate } from "@/lib/format";
 import { KEYS, useLocalSet } from "@/lib/store";
 import type { CatalogueItem, Dimension, EventItem, Room } from "@/lib/types";
@@ -26,6 +27,14 @@ export default function PassportView({ rooms, events, items }: Props) {
   const joined = useLocalSet(KEYS.rooms);
   const going = useLocalSet(KEYS.events);
   const saved = useLocalSet(KEYS.saved);
+  const [profile, setProfile] = useState<{ name?: string | null; username?: string } | null>(null);
+  useEffect(() => {
+    void fetch("/api/me").then(async (response) => {
+      if (!response.ok) return;
+      const payload = await response.json() as { user?: { name?: string | null; username?: string } };
+      setProfile(payload.user ?? null);
+    }).catch((error) => console.error("profile could not be loaded", error));
+  }, []);
 
   const myRooms = rooms.filter((r) => joined.items.includes(r.slug));
   const myEvents = events.filter((e) => going.items.includes(e.id));
@@ -44,7 +53,7 @@ export default function PassportView({ rooms, events, items }: Props) {
       <div className="passport-head card c-lav wob3">
         <CatFace size={72} />
         <div>
-          <h2 className="h-card">Who you are here</h2>
+          <h2 className="h-card">{profile?.name ?? profile?.username ?? "Who you are here"}</h2>
           <p className="muted">
             Not what you clicked. Who you are in this culture. It fills up as you join rooms, go to
             events and save titles.

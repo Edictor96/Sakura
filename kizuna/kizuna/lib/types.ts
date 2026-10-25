@@ -17,6 +17,24 @@ export interface CatalogueItem {
   maker?: string;
   blurb: string;
   tags: string[];
+  imageUrl?: string;
+  originalTitle?: string;
+  genres?: string[];
+  themes?: string[];
+  status?: string;
+  score?: number;
+  episodeCount?: number;
+  runtimeMinutes?: number;
+  images?: MediaImage[];
+}
+
+export interface MediaImage {
+  type: string;
+  url: string;
+  provider: string;
+  sourceUrl?: string;
+  width?: number;
+  height?: number;
 }
 
 export interface Room {
