@@ -26,6 +26,10 @@ export async function POST(request: Request) {
   if (entityType === "PRODUCT") active = await createProductRepository(prisma).toggleWishlist(user.id, entityId);
   if (active === null) return NextResponse.json({ error: "Entity not found." }, { status: 404 });
   const interactionType = entityType === "GROUP" ? (active ? "JOIN_GROUP" : "LEAVE_GROUP") : entityType === "EVENT" ? "RSVP" : entityType === "MEDIA" ? "SAVE" : "WISHLIST";
-  await recordActivity({ userId: user.id, interactionType, entityType, entityId, metadata: { source: "ui" } });
+  try {
+    await recordActivity({ userId: user.id, interactionType, entityType, entityId, metadata: { source: "ui" } });
+  } catch (error) {
+    console.error("relationship activity recording failed", error);
+  }
   return NextResponse.json({ ok: true, active });
 }

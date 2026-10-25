@@ -15,9 +15,9 @@ fields, and persistence paths.
 | Catalogue item | `id` | has world, kind, tags; can relate to rooms/events/products | `lib/types.ts`, `mock.ts` |
 | Event | `id` | city, host, group/room, optional franchise, attendees, badges, recap | `lib/types.ts`, `eventsData.ts` |
 | User | future auth id | owns memberships, RSVPs, saves, cart, reviews, reports | not implemented |
-| Membership | `(userId, room/groupId)` | joins a user to a room or community | localStorage only |
-| RSVP | `(userId, eventId)` | records attendance intent | localStorage only |
-| Saved item | `(userId, catalogueItemId)` | records a saved title | localStorage only |
+| Membership | `(userId, room/groupId)` | joins a user to a room or community | Prisma `GroupMembership` |
+| RSVP | `(userId, eventId)` | records attendance intent | Prisma `EventRsvp` |
+| Saved item | `(userId, catalogueItemId)` | records a saved title | Prisma `SavedMedia` |
 | Partner | `id` | owns products and drops; may be linked to events | `merchData.ts` |
 | Product | `id` | belongs to a partner; has category, tags, stock state, reviews | `lib/types.ts`, `merchData.ts` |
 | Drop | `id` | belongs to a partner/product; optional group restriction | `merchData.ts` |

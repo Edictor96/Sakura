@@ -2,16 +2,15 @@ import { createServerClient } from "@supabase/ssr";
 import { cookies } from "next/headers";
 import { prisma } from "./db/prisma";
 
-const DEMO_USER_ID = "user-demo";
-
 function usernameFromEmail(email: string) {
   return email.split("@")[0].toLowerCase().replace(/[^a-z0-9_]+/g, "-").replace(/^-|-$/g, "").slice(0, 24) || "sakura-user";
 }
 
 async function readAuthUser() {
-  if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) return null;
+  const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ?? process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
+  if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !key) return null;
   const cookieStore = await cookies();
-  const client = createServerClient(process.env.NEXT_PUBLIC_SUPABASE_URL, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY, {
+  const client = createServerClient(process.env.NEXT_PUBLIC_SUPABASE_URL, key, {
     cookies: {
       getAll: () => cookieStore.getAll(),
       setAll: (values) => values.forEach(({ name, value, options }) => cookieStore.set(name, value, options)),
@@ -36,7 +35,7 @@ async function provisionUser(email: string, metadata: Record<string, unknown>) {
 
 export async function getCurrentUser() {
   const authUser = await readAuthUser();
-  return authUser?.email ? provisionUser(authUser.email, authUser.user_metadata ?? {}) : prisma.user.findUnique({ where: { id: DEMO_USER_ID } });
+  return authUser?.email ? provisionUser(authUser.email, authUser.user_metadata ?? {}) : null;
 }
 
 export async function requireCurrentUser() {

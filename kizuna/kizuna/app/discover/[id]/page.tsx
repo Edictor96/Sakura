@@ -5,6 +5,7 @@ import { SaveButton } from "@/components/ToggleButtons";
 import { db } from "@/lib/data";
 import { officialSearchUrl } from "@/lib/format";
 import { roomsForItem, similarItems } from "@/lib/recommend";
+import { getCurrentUser } from "@/lib/server/auth";
 import { recordCurrentUserActivity } from "@/lib/server/services/activityService";
 
 type Params = { params: Promise<{ id: string }> };
@@ -19,7 +20,7 @@ export default async function ItemPage({ params }: Params) {
   const { id } = await params;
   const item = await db.getCatalogueItem(id);
   if (!item) notFound();
-  if (process.env.DATABASE_URL) {
+  if (process.env.DATABASE_URL && await getCurrentUser()) {
     await recordCurrentUserActivity({ interactionType: "VIEW", entityType: "MEDIA", entityId: item.id, metadata: { source: "discover" } });
   }
 
@@ -35,7 +36,7 @@ export default async function ItemPage({ params }: Params) {
       {item.images?.find((image) => image.type === "backdrop" || image.type === "banner")?.url ?? item.imageUrl ? (
         <img
           src={item.images?.find((image) => image.type === "backdrop" || image.type === "banner")?.url ?? item.imageUrl}
-          alt=""
+          alt={`${item.title} artwork`}
           style={{ width: "100%", maxHeight: 360, objectFit: "cover", borderRadius: 16 }}
         />
       ) : null}

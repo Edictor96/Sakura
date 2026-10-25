@@ -40,15 +40,14 @@ adapter remains available when content tables are unavailable during local/demo 
   Supabase environment variables.
 - Server-rendered pages use `db` for the original rooms, posts, events, catalogue, and product
   contract.
-- The Events and Community surfaces still import in-memory data modules directly. Merch detail,
-  drops, orders, reviews, partner, and social flows also use dedicated mock models and browser
-  storage.
-- `app/api/posts/route.ts` is the only API route. It performs moderation and inserts directly
-  through the Supabase client.
-- Memberships, RSVPs, saved titles, wishlist, cart, community posts/replies/actions, follows,
-  shares, and reviews are stored in `localStorage`.
-- There is no Prisma schema, migration history, service layer, repository layer, request schema
-  validation library, or structured server error/logging boundary.
+- Some presentation-only host proposal drafts, city preferences, and legacy merch social
+  interactions still use browser storage; authenticated memberships, RSVPs, saved titles,
+  wishlist, cart, posts, comments, reactions, reports, blocks, check-ins, and watch-party
+  participation use the server persistence layer.
+- API routes use the shared auth, repository, and service boundaries. Provider ingestion and
+  moderation administration are protected by server-only bearer tokens.
+- Orders, payments, reviews, and live chat remain prototype UI surfaces without a corresponding
+  transactional backend contract.
 
 ### Target dependency flow
 

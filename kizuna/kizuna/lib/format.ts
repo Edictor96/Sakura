@@ -1,4 +1,4 @@
-import type { CatalogueItem } from "./types";
+import type { CatalogueItem, MediaImage } from "./types";
 
 export function formatDate(iso: string): string {
   return new Date(iso).toLocaleDateString("en-IN", {
@@ -36,8 +36,12 @@ export function officialSearchUrl(item: CatalogueItem): { label: string; url: st
   return { label: "Find where to watch or read", url: `https://www.justwatch.com/in/search?q=${q}` };
 }
 
-export function mediaImage(item: CatalogueItem, preferred: string[] = ["poster", "cover", "thumbnail"]): string | undefined {
+export function selectMediaArtwork(images: Array<Pick<MediaImage, "type" | "url">> | undefined, fallback?: string, preferred = ["backdrop", "banner", "poster", "cover", "thumbnail"]): string | undefined {
   return preferred
-    .map((type) => item.images?.find((image) => image.type === type)?.url)
-    .find((url): url is string => Boolean(url)) ?? item.imageUrl;
+    .map((type) => images?.find((image) => image.type === type)?.url)
+    .find((url): url is string => Boolean(url)) ?? fallback;
+}
+
+export function mediaImage(item: CatalogueItem, preferred?: string[]): string | undefined {
+  return selectMediaArtwork(item.images, item.imageUrl, preferred);
 }

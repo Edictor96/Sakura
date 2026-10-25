@@ -22,7 +22,11 @@ export async function POST(request: Request) {
       const content = typeof payload.content === "string" ? payload.content.trim() : "";
       if (!postId || !content || content.length > 5000) return NextResponse.json({ error: "Invalid comment." }, { status: 400 });
       const comment = await createComment({ postId, authorId: user.id, content, parentId: typeof payload.parentId === "string" ? payload.parentId : undefined });
-      await recordActivity({ userId: user.id, interactionType: "COMMENT", entityType: "POST", entityId: postId, metadata: { commentId: comment.id } });
+      try {
+        await recordActivity({ userId: user.id, interactionType: "COMMENT", entityType: "POST", entityId: postId, metadata: { commentId: comment.id } });
+      } catch (error) {
+        console.error("comment activity recording failed", error);
+      }
       return NextResponse.json({ comment }, { status: 201 });
     }
     if (action === "reaction") {
@@ -30,7 +34,13 @@ export async function POST(request: Request) {
       const entityId = typeof payload.entityId === "string" ? payload.entityId.trim() : "";
       if (!entityId) return NextResponse.json({ error: "Reaction target is required." }, { status: 400 });
       const active = await toggleReaction({ userId: user.id, entityType, entityId, reactionType: typeof payload.reactionType === "string" ? payload.reactionType : undefined });
-      if (active) await recordActivity({ userId: user.id, interactionType: "REACTION", entityType, entityId });
+      if (active) {
+        try {
+          await recordActivity({ userId: user.id, interactionType: "REACTION", entityType, entityId });
+        } catch (error) {
+          console.error("reaction activity recording failed", error);
+        }
+      }
       return NextResponse.json({ active });
     }
     if (action === "report") {

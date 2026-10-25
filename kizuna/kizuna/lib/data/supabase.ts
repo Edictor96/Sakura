@@ -15,7 +15,7 @@ import { api as mock } from "./mock";
 // so a flaky network never blanks the demo.
 
 const url = process.env.NEXT_PUBLIC_SUPABASE_URL ?? "";
-const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ?? "";
+const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ?? process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY ?? "";
 
 export const supabase = url && key ? createClient(url, key) : null;
 

@@ -16,6 +16,10 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
     update: {},
     create: { userId: user.id, eventId, reference: request.headers.get("x-check-in-reference")?.slice(0, 120) },
   });
-  await recordActivity({ userId: user.id, interactionType: "CHECK_IN", entityType: "EVENT", entityId: eventId });
+  try {
+    await recordActivity({ userId: user.id, interactionType: "CHECK_IN", entityType: "EVENT", entityId: eventId });
+  } catch (error) {
+    console.error("check-in activity recording failed", error);
+  }
   return NextResponse.json({ checkIn });
 }

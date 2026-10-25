@@ -13,7 +13,7 @@ export default async function Home() {
       <section className="hero-moment" aria-labelledby="moment-title">
         <SampleNote what="cultural moments" />
         <div className="moment-card c-pink wob1">
-          <div className="moment-img" style={{ backgroundImage: `url(${data.featured.imageUrl})` }} />
+          {data.featured.imageUrl ? <img className="moment-img" src={data.featured.imageUrl} alt={`${data.featured.title} artwork`} fetchPriority="high" /> : <div className="moment-img moment-img-fallback" aria-hidden="true">桜</div>}
           <div className="moment-content">
             <span className="moment-type">{data.featured.type}</span>
             <h1 id="moment-title" className="h-hero">{data.featured.title}</h1>

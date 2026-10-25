@@ -38,6 +38,10 @@ export async function POST(req: Request) {
   });
   if (!membership) return NextResponse.json({ ok: false, error: "Join this group before posting." }, { status: 403 });
   const post = await createPostRepository(prisma).create({ groupId: group.id, authorId: user.id, content: body, isSpoiler: Boolean(payload.isSpoiler) });
-  await recordActivity({ userId: user.id, interactionType: "POST", entityType: "GROUP", entityId: group.id, metadata: { source: "ui", postId: post.id } });
+  try {
+    await recordActivity({ userId: user.id, interactionType: "POST", entityType: "GROUP", entityId: group.id, metadata: { source: "ui", postId: post.id } });
+  } catch (error) {
+    console.error("post activity recording failed", error);
+  }
   return NextResponse.json({ ok: true, persisted: true, postId: post.id });
 }

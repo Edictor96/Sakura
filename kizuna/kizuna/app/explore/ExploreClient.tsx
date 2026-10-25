@@ -7,7 +7,7 @@ import { matchesMood, type ExploreData, type ExploreMood } from "@/lib/data/expl
 import type { CatalogueItem } from "@/lib/types";
 import { events } from "@/lib/data/events/eventsData";
 import { recordClientActivity } from "@/lib/activityClient";
-import { mediaImage } from "@/lib/format";
+import { mediaImage, selectMediaArtwork } from "@/lib/format";
 
 const kindLabel: Record<CatalogueItem["kind"], string> = {
   anime: "ANIME",
@@ -39,7 +39,7 @@ function MediaCard({ item }: { item: CatalogueItem }) {
 
 export default function ExploreClient({ items, data }: { items: CatalogueItem[]; data: ExploreData }) {
   const [query, setQuery] = useState("");
-  const [remoteResults, setRemoteResults] = useState<Array<{ id: string; title: string; type: string; description?: string | null; imageUrl?: string | null }>>([]);
+  const [remoteResults, setRemoteResults] = useState<Array<{ id: string; title: string; type: string; description?: string | null; imageUrl?: string | null; images?: Array<{ type: string; url: string }> }>>([]);
   const [searchError, setSearchError] = useState(false);
   const [mood, setMood] = useState<ExploreMood | null>(null);
   const [category, setCategory] = useState<"all" | "anime" | "music" | "films">("all");
@@ -58,7 +58,7 @@ export default function ExploreClient({ items, data }: { items: CatalogueItem[];
             setSearchError(true);
             return;
           }
-          const payload = await response.json() as { results?: Array<{ id: string; title: string; type: string; description?: string | null; imageUrl?: string | null }> };
+          const payload = await response.json() as { results?: Array<{ id: string; title: string; type: string; description?: string | null; imageUrl?: string | null; images?: Array<{ type: string; url: string }> }> };
           setRemoteResults(payload.results ?? []);
           setSearchError(false);
         })
@@ -128,7 +128,10 @@ export default function ExploreClient({ items, data }: { items: CatalogueItem[];
         <section className="explore-results" aria-live="polite">
           <div className="explore-section-head"><h2 className="h-section">Your finds</h2><span className="stamp">{filtered.length} results</span></div>
           {searchError ? <p className="error" role="alert">Search is temporarily unavailable. Showing the curated shelf instead.</p> : null}
-          {remoteResults.length ? <div className="explore-media-row c-mint">{remoteResults.map((item) => <article className="explore-media-card card c-cream" key={item.id}><Link href={`/discover/${item.id}`} className="explore-media-link">{item.imageUrl ? <img src={item.imageUrl} alt="" loading="lazy" className="explore-media-image" /> : <div className="explore-media-image explore-media-image-fallback" aria-hidden="true">{item.type.slice(0, 1)}</div>}<span className="explore-kind">{item.type}</span><h3 className="h-card">{item.title}</h3><p>{item.description ?? "Open this cultural pick to learn more."}</p></Link><SaveButton id={item.id} /></article>)}</div> : filtered.length ? <div className="explore-media-row c-mint">{filtered.map((item) => <MediaCard key={item.id} item={item} />)}</div> : <p className="empty">Nothing found yet. Try another title, artist or film.</p>}
+          {remoteResults.length ? <div className="explore-media-row c-mint">{remoteResults.map((item) => {
+            const artwork = selectMediaArtwork(item.images, item.imageUrl ?? undefined);
+            return <article className="explore-media-card card c-cream" key={item.id}><Link href={`/discover/${item.id}`} className="explore-media-link">{artwork ? <img src={artwork} alt={`${item.title} artwork`} loading="lazy" className="explore-media-image" /> : <div className="explore-media-image explore-media-image-fallback" aria-hidden="true">{item.type.slice(0, 1)}</div>}<span className="explore-kind">{item.type}</span><h3 className="h-card">{item.title}</h3><p>{item.description ?? "Open this cultural pick to learn more."}</p></Link><SaveButton id={item.id} /></article>;
+          })}</div> : filtered.length ? <div className="explore-media-row c-mint">{filtered.map((item) => <MediaCard key={item.id} item={item} />)}</div> : <p className="empty">Nothing found yet. Try another title, artist or film.</p>}
         </section>
       ) : null}
 

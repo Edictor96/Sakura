@@ -80,6 +80,7 @@ async function main() {
         maker: item.maker,
         blurb: item.blurb,
         description: item.blurb,
+        imageUrl: item.imageUrl,
         tags: item.tags,
       },
       create: {
@@ -91,9 +92,24 @@ async function main() {
         maker: item.maker,
         blurb: item.blurb,
         description: item.blurb,
+        imageUrl: item.imageUrl,
         tags: item.tags,
       },
     });
+    if (item.images?.length) {
+      await prisma.mediaImage.deleteMany({ where: { mediaId: item.id } });
+      await prisma.mediaImage.createMany({
+        data: item.images.map((image) => ({
+          mediaId: item.id,
+          type: image.type,
+          url: image.url,
+          provider: image.provider,
+          sourceUrl: image.sourceUrl,
+          width: image.width,
+          height: image.height,
+        })),
+      });
+    }
   }
 
   for (const post of mockPosts) {

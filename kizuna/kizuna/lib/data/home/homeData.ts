@@ -2,13 +2,14 @@ import type { CatalogueItem } from "../../types";
 import { catalogue } from "../mock";
 import { getPersonalizedHome } from "@/lib/server/services/recommendationService";
 import { getCurrentUser } from "@/lib/server/auth";
+import { mediaImage } from "@/lib/format";
 
 export interface HomeFeatured {
   id: string;
   title: string;
   type: string;
   description: string;
-  imageUrl: string;
+  imageUrl?: string;
   ctaText: string;
   ctaHref: string;
 }
@@ -58,7 +59,7 @@ export async function getHomeData(userId?: string): Promise<HomeData> {
       title: "Spirited Away: 25th Anniversary",
       type: "Cinema",
       description: "Revisit the magical bathhouse in a special anniversary screening event across India.",
-      imageUrl: "https://images.unsplash.com/photo-1578632292335-df370B450637?q=80&w=1000", // Placeholder
+      imageUrl: mediaImage(getMediaById("spirited-away") ?? catalogue[0], ["backdrop", "banner", "poster", "cover", "thumbnail"]),
       ctaText: "Find a Screening",
       ctaHref: "/events",
     },
